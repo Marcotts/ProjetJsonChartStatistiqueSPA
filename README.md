@@ -92,3 +92,10 @@ npx http-server -p 8080 -a 127.0.0.1 --cors
   - Renforcement du `itemStyle` de la série heatmap (opacité, fin liseré) pour laisser s’exprimer l’échelle de couleurs (Viridis‑like).
 - Résultat: la couleur varie maintenant par intensité (Jaccard par défaut), sans motif rayé parasite. Tooltips et drill‑down restent actifs.
 - Pour voir la modification: rafraîchissement dur (Ctrl+F5). Si le serveur local a été arrêté, relancez‑le (voir plus haut).
+
+
+#### Mise à jour 2026-02-08 21:09 — Heatmap toute noire corrigée
+- Symptôme: la heatmap « Co‑occurrence de Catégories (Top N) » apparaissait toute noire, avec seulement quelques pixels très vifs.
+- Cause racine: `visualMap` ne ciblait pas explicitement la dimension de valeur (3e position dans `[x,y,val]`), ce qui classait la plupart des cellules en dehors de l’échelle de couleurs.
+- Correctif: `visualMap.dimension = 2` (valeur) sur les modes piecewise et continu + style `outOfRange` lisible (pas d’écran noir). Les calques d’état vide restent silencieux et nettoyés avant rendu.
+- Validation: le Journal affiche désormais `Co‑occurrence — visualMap piecewise (quantiles) sélectionné` (ou continu) avec les seuils; visuellement, l’intensité est bien perceptible, tooltips et clic (drill‑down) fonctionnent.
