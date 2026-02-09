@@ -3,10 +3,11 @@
 Ce projet est une application web statique (SPA) servant des tableaux de bord interactifs sur vos données H2 exportées en JSON : `RESUMES.json`, `SERIE1.json`, `SERIE2.json`, `TOUSLESFILMS.json`, `CATEGORIES.json`.
 
 #### Où en étions‑nous ?
-- État au 2026-02-08 20:59: contraste Heatmap co‑occurrence renforcé (échelle adaptive par quantiles), clic/hover garantis.
+- État au 2026-02-08 21:32: Tooltips de co‑occurrence enrichis + bordures affinées.
   - Carte « Co‑occurrence de Catégories (Top N) »: seul le bouton « Exclure DRAME » est visible. Vue par défaut Heatmap/Jaccard; fallback auto vers Points si nécessaire.
   - Colorimétrie: échelle maintenant « adaptive » — si la matrice est très dense ou la plage très étroite, on passe en `piecewise` (quantiles) pour créer des paliers de couleurs perceptibles; sinon, on garde une échelle continue. La diagonale est incluse visuellement mais exclue du calcul des seuils pour éviter d’écraser le contraste.
-  - Tooltips durcies (trigger item) + « manual hover driver »; clic « manual driver » en secours → drill‑down toujours ouvert au clic.
+  - Tooltips (Heatmap & Points) affichent désormais clairement: |A|, |B|, |A∩B|, |A∪B| + % du total films pour |A| et |B|, puis Jaccard / Lift / PMI.
+  - Bordures de cellules réduites (0.3px), couleur adoucie, suppression du flou d’emphase pour éviter les « résidus de bordure » visibles à distance lors du survol.
   - Bouton « Ping Journal »: stats générales + intersection « Horreur ∩ Science‑fiction » (HOR ∩ SCFI) selon filtres.
   - Journal d’accompagnement au démarrage toujours présent.
 - La carte « Nombre de catégories par titre » (id `chart-genre-counts`) reste en classes 0..9 et `9+`.

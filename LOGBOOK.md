@@ -18,3 +18,4 @@
 - 2026-02-08 16:52 — Simplification UI co‑occurrence: retrait de tous les contrôles sauf « Exclure DRAME ». Valeurs par défaut: Heatmap + Jaccard, diagonale visible. Fallback automatique vers Points conservé. Docs mises à jour (README, DECISIONS).
 - 2026-02-08 17:05 — Accompagnement: logs UI au démarrage, bouton « Ping Journal », diagnostics co‑occurrence (labels/cellules), fallback forcé vers Points+Compte+Diagonale si nécessaire. README mis à jour.
 - 2026-02-08 17:25 — Ping Journal enrichi: ajout du calcul et log de l’intersection HOR ∩ SCFI (Horreur ∩ Science‑fiction) respectant les filtres actifs: |HOR|, |SCFI|, |HOR∩SCFI|, |HOR∪SCFI|, Jaccard, Lift, PMI, totalFilms, échantillon de titres.
+- 2026-02-08 21:32 — Co‑occurrence: Tooltips enrichis (|A|, |B|, |A∩B|, |A∪B|, % du total), réduction des bordures (0.3px, sans flou d’emphase), splitLines allégés; correction des artefacts de bordure au survol.

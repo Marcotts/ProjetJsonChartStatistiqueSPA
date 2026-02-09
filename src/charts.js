@@ -293,14 +293,20 @@ export function renderGenreCoocHeatmap(el, payload, options = {}) {
       enterable: true,
       formatter: (p) => {
         try {
+          const totalFilms = payload?.totalFilms || 0;
+          const pct = (x) => totalFilms ? `${(Math.round((x/totalFilms)*1000)/10).toFixed(1)}%` : '—';
           const i = p.data[1], j = p.data[0];
           const a = labels[i];
           const b = labels[j];
           const cell = p.data[3] || {};
+          const union = (cell.aCount||0) + (cell.bCount||0) - (cell.count||0);
           const lines = [
             `<b>${a}</b> ∩ <b>${b}</b>`,
-            `Comptes: A=${cell.aCount}, B=${cell.bCount}, A∩B=<b>${cell.count}</b>`,
-            `Jaccard: <b>${fmt(cell.jaccard)}</b> · Lift: <b>${fmt(cell.lift)}</b> · PMI: <b>${fmt(cell.pmi)}</b>`
+            `A (|A|): <b>${cell.aCount}</b> films · ${pct(cell.aCount)} du total`,
+            `B (|B|): <b>${cell.bCount}</b> films · ${pct(cell.bCount)} du total`,
+            `Intersection (|A∩B|): <b>${cell.count}</b> films`,
+            `Union (|A∪B|): <b>${union}</b> films · Jaccard: <b>${fmt(cell.jaccard)}</b>`,
+            `Lift: <b>${fmt(cell.lift)}</b> · PMI: <b>${fmt(cell.pmi)}</b>`
           ];
           return `<div>${lines.join('<br/>')}</div>`;
         } catch (e) {
@@ -314,14 +320,14 @@ export function renderGenreCoocHeatmap(el, payload, options = {}) {
       data: labels, 
       axisLabel: { color: '#cbd5e1', rotate: 45 },
       axisTick: { show: false },
-      splitLine: { show: true, lineStyle: { color: 'rgba(148,163,184,0.15)' } }
+      splitLine: { show: true, lineStyle: { color: 'rgba(148,163,184,0.08)' } }
     },
     yAxis: { 
       type: 'category', 
       data: labels, 
       axisLabel: { color: '#cbd5e1' },
       axisTick: { show: false },
-      splitLine: { show: true, lineStyle: { color: 'rgba(148,163,184,0.15)' } }
+      splitLine: { show: true, lineStyle: { color: 'rgba(148,163,184,0.08)' } }
     },
     grid: { left: 120, right: 20, top: 10, bottom: 100 },
     visualMap,
@@ -331,8 +337,8 @@ export function renderGenreCoocHeatmap(el, payload, options = {}) {
       data,
       encode: { x: 0, y: 1, value: 2 },
       label: { show: false },
-      itemStyle: { opacity: 0.92, borderColor: 'rgba(15,23,42,0.65)', borderWidth: 0.6 },
-      emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(15,23,42,0.9)', borderWidth: 1 } },
+      itemStyle: { opacity: 0.92, borderColor: 'rgba(15,23,42,0.35)', borderWidth: 0.3 },
+      emphasis: { itemStyle: { shadowBlur: 0, shadowColor: 'rgba(0,0,0,0)', borderColor: 'rgba(15,23,42,0.6)', borderWidth: 0.6 } },
       progressive: 0
     }]
   });
@@ -466,13 +472,19 @@ export function renderGenreCoocScatter(el, payload, options = {}) {
       confine: true,
       enterable: true,
       formatter: (p) => {
+        const totalFilms = payload?.totalFilms || 0;
+        const pct = (x) => totalFilms ? `${(Math.round((x/totalFilms)*1000)/10).toFixed(1)}%` : '—';
         const d = p.data;
         const a = labels[d.i];
         const b = labels[d.j];
+        const union = (d.aCount||0) + (d.bCount||0) - (d.count||0);
         const lines = [
           `<b>${a}</b> ∩ <b>${b}</b>`,
-          `Comptes: A=${d.aCount}, B=${d.bCount}, A∩B=<b>${d.count}</b>`,
-          `Jaccard: <b>${fmt(d.jaccard)}</b> · Lift: <b>${fmt(d.lift)}</b> · PMI: <b>${fmt(d.pmi)}</b>`
+          `A (|A|): <b>${d.aCount}</b> films · ${pct(d.aCount)} du total`,
+          `B (|B|): <b>${d.bCount}</b> films · ${pct(d.bCount)} du total`,
+          `Intersection (|A∩B|): <b>${d.count}</b> films`,
+          `Union (|A∪B|): <b>${union}</b> films · Jaccard: <b>${fmt(d.jaccard)}</b>`,
+          `Lift: <b>${fmt(d.lift)}</b> · PMI: <b>${fmt(d.pmi)}</b>`
         ];
         return `<div>${lines.join('<br/>')}</div>`;
       }
@@ -497,9 +509,9 @@ export function renderGenreCoocScatter(el, payload, options = {}) {
       data: seriesData,
       symbolSize: (val, params) => sizeScale(params.data.count),
       itemStyle: {
-        borderColor: 'rgba(15,23,42,0.85)',
-        borderWidth: 1,
-        opacity: 0.9
+        borderColor: 'rgba(15,23,42,0.6)',
+        borderWidth: 0.6,
+        opacity: 0.92
       }
     }]
   });
