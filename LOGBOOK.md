@@ -20,3 +20,4 @@
 - 2026-02-08 17:25 — Ping Journal enrichi: ajout du calcul et log de l’intersection HOR ∩ SCFI (Horreur ∩ Science‑fiction) respectant les filtres actifs: |HOR|, |SCFI|, |HOR∩SCFI|, |HOR∪SCFI|, Jaccard, Lift, PMI, totalFilms, échantillon de titres.
 - 2026-02-08 21:32 — Co‑occurrence: Tooltips enrichis (|A|, |B|, |A∩B|, |A∪B|, % du total), réduction des bordures (0.3px, sans flou d’emphase), splitLines allégés; correction des artefacts de bordure au survol.
 - 2026-02-08 21:45 — Modale drill‑down: correction UX (focus, backdrop, Échap, scroll‑lock) + sélecteur « Tous/Films/Séries » visible si mélange de types; export CSV respecte le filtre. README/DECISIONS mis à jour.
+- 2026-02-08 22:01 — Co‑occurrence: ajout d’un sélecteur dans le tooltip (« Afficher: Nombres | Métriques »). Par défaut: Nombres (|A|, |B|, |A∩B|, |A∪B|, %). Bascule immédiate sans quitter l’info‑bulle; préférence conservée pendant la session. README/DECISIONS mis à jour.

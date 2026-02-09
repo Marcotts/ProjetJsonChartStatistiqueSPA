@@ -7,7 +7,7 @@ const state = {
   model: null,
   charts: {},
   filters: { yearMin: null, yearMax: null, text: '', requireFr: false, requireEn: false },
-  cooc: { view: 'heatmap', metric: 'jaccard', hideDiagonal: false, exclude: [] }
+  cooc: { view: 'heatmap', metric: 'jaccard', hideDiagonal: false, exclude: [], tooltipMode: 'counts' }
 };
 
 // Anti-double ouverture pour co‑occurrence: timestamp du dernier clic série
@@ -98,7 +98,7 @@ function renderAll(model, filteredDataset = null) {
     try { const elHide = document.getElementById('cooc-hide-diag'); if (elHide) elHide.checked = false; } catch {}
   }
   // co‑occurrence: choose renderer and pass options
-  let coocOpts = { metric: state.cooc.metric || 'jaccard', hideDiagonal: !!state.cooc.hideDiagonal, exclude: state.cooc.exclude || [] };
+  let coocOpts = { metric: state.cooc.metric || 'jaccard', hideDiagonal: !!state.cooc.hideDiagonal, exclude: state.cooc.exclude || [], tooltipMode: state.cooc.tooltipMode || 'counts' };
   // Avant rendu, log explicite sur la présence de données de co‑occurrence
   let payload = aggs.genreCooc || {};
   try {
@@ -643,6 +643,19 @@ function setupCoocControls(model) {
     const filtered = filterDataset(model.dataset, state.filters);
     renderAll(model, filtered);
   }
+
+  // Listen tooltip mode switch coming from charts tooltips
+  try {
+    window.removeEventListener('cooc-tooltip-mode', window.__onCoocTooltipMode);
+  } catch {}
+  window.__onCoocTooltipMode = (ev) => {
+    const mode = (ev?.detail?.mode === 'metrics') ? 'metrics' : 'counts';
+    if (state.cooc.tooltipMode === mode) return;
+    state.cooc.tooltipMode = mode;
+    Logger.info('Tooltip co‑occurrence: mode changé', { mode });
+    rerender();
+  };
+  window.addEventListener('cooc-tooltip-mode', window.__onCoocTooltipMode);
 
   elDrama.addEventListener('click', () => {
     const set = new Set((state.cooc.exclude || []).map(c => String(c).toUpperCase()));

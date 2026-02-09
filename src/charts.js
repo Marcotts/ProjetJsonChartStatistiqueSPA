@@ -1,5 +1,26 @@
 import { Logger } from './logger.js';
 
+// Bridge: install once a document-level click handler to switch tooltip mode
+let __coocTipBridgeInstalled = false;
+export function ensureTooltipModeBridgeInstalled() {
+  if (__coocTipBridgeInstalled) return;
+  try {
+    document.addEventListener('click', (e) => {
+      const a = e.target && (e.target.closest ? e.target.closest('[data-cooc-tipmode]') : null);
+      if (!a) return;
+      const mode = a.getAttribute('data-cooc-tipmode');
+      if (!mode) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window.dispatchEvent(new CustomEvent('cooc-tooltip-mode', { detail: { mode } }));
+    }, true);
+    __coocTipBridgeInstalled = true;
+    Logger.debug('Tooltip mode bridge installé');
+  } catch (err) {
+    Logger.warn('Impossible d’installer le bridge tooltip mode', { err: String(err) });
+  }
+}
+
 export function renderByYear(el, data) {
   const chart = echarts.init(el, null, { renderer: 'canvas' });
   const years = data.map(d => d.year);
@@ -158,6 +179,8 @@ export function renderGenreCoocHeatmap(el, payload, options = {}) {
   const metric = options.metric || 'jaccard'; // 'count' | 'jaccard' | 'lift' | 'pmi'
   const hideDiagonal = !!options.hideDiagonal;
   const excluded = (options.exclude || []);
+  const tooltipMode = (options.tooltipMode === 'metrics') ? 'metrics' : 'counts';
+  ensureTooltipModeBridgeInstalled();
   // Build data array with chosen metric
   const raw = (payload?.matrix || []);
   const data = raw
@@ -300,15 +323,30 @@ export function renderGenreCoocHeatmap(el, payload, options = {}) {
           const b = labels[j];
           const cell = p.data[3] || {};
           const union = (cell.aCount||0) + (cell.bCount||0) - (cell.count||0);
-          const lines = [
-            `<b>${a}</b> ∩ <b>${b}</b>`,
-            `A (|A|): <b>${cell.aCount}</b> films · ${pct(cell.aCount)} du total`,
-            `B (|B|): <b>${cell.bCount}</b> films · ${pct(cell.bCount)} du total`,
-            `Intersection (|A∩B|): <b>${cell.count}</b> films`,
-            `Union (|A∪B|): <b>${union}</b> films · Jaccard: <b>${fmt(cell.jaccard)}</b>`,
-            `Lift: <b>${fmt(cell.lift)}</b> · PMI: <b>${fmt(cell.pmi)}</b>`
-          ];
-          return `<div>${lines.join('<br/>')}</div>`;
+          let body = '';
+          if (tooltipMode === 'metrics') {
+            body = [
+              `<b>${a}</b> ∩ <b>${b}</b>`,
+              `Jaccard: <b>${fmt(cell.jaccard)}</b>`,
+              `Lift: <b>${fmt(cell.lift)}</b> · PMI: <b>${fmt(cell.pmi)}</b>`,
+              `<span style="color:#94a3b8">A: ${cell.aCount} · B: ${cell.bCount} · A∩B: ${cell.count} · A∪B: ${union}</span>`
+            ].join('<br/>');
+          } else {
+            body = [
+              `<b>${a}</b> ∩ <b>${b}</b>`,
+              `A (|A|): <b>${cell.aCount}</b> films · ${pct(cell.aCount)} du total`,
+              `B (|B|): <b>${cell.bCount}</b> films · ${pct(cell.bCount)} du total`,
+              `Intersection (|A∩B|): <b>${cell.count}</b> films`,
+              `Union (|A∪B|): <b>${union}</b> films`,
+              `<span style="color:#94a3b8">Jaccard ${fmt(cell.jaccard)} · Lift ${fmt(cell.lift)} · PMI ${fmt(cell.pmi)}</span>`
+            ].join('<br/>');
+          }
+          const sw = `<div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+            <span style="color:#94a3b8">Afficher:</span>
+            <a href="#" data-cooc-tipmode="counts" style="padding:2px 6px;border-radius:4px;${tooltipMode==='counts'?'background:#334155;color:#e2e8f0;':'color:#93c5fd;'}">Nombres</a>
+            <a href="#" data-cooc-tipmode="metrics" style="padding:2px 6px;border-radius:4px;${tooltipMode==='metrics'?'background:#334155;color:#e2e8f0;':'color:#93c5fd;'}">Métriques</a>
+          </div>`;
+          return `<div>${body}${sw}</div>`;
         } catch (e) {
           Logger.warn('Tooltip heatmap — fallback minimal', { err: String(e) });
           return `i=${p?.data?.[1]} j=${p?.data?.[0]} val=${p?.data?.[2]}`;
@@ -407,6 +445,8 @@ export function renderGenreCoocScatter(el, payload, options = {}) {
   const metric = options.metric || 'jaccard';
   const hideDiagonal = !!options.hideDiagonal;
   const excluded = (options.exclude || []);
+  const tooltipMode = (options.tooltipMode === 'metrics') ? 'metrics' : 'counts';
+  ensureTooltipModeBridgeInstalled();
   const minSymbol = options.minSymbol || 4;
   const maxSymbol = options.maxSymbol || 28;
   const seriesData = [];
@@ -478,15 +518,30 @@ export function renderGenreCoocScatter(el, payload, options = {}) {
         const a = labels[d.i];
         const b = labels[d.j];
         const union = (d.aCount||0) + (d.bCount||0) - (d.count||0);
-        const lines = [
-          `<b>${a}</b> ∩ <b>${b}</b>`,
-          `A (|A|): <b>${d.aCount}</b> films · ${pct(d.aCount)} du total`,
-          `B (|B|): <b>${d.bCount}</b> films · ${pct(d.bCount)} du total`,
-          `Intersection (|A∩B|): <b>${d.count}</b> films`,
-          `Union (|A∪B|): <b>${union}</b> films · Jaccard: <b>${fmt(d.jaccard)}</b>`,
-          `Lift: <b>${fmt(d.lift)}</b> · PMI: <b>${fmt(d.pmi)}</b>`
-        ];
-        return `<div>${lines.join('<br/>')}</div>`;
+        let body = '';
+        if (tooltipMode === 'metrics') {
+          body = [
+            `<b>${a}</b> ∩ <b>${b}</b>`,
+            `Jaccard: <b>${fmt(d.jaccard)}</b>`,
+            `Lift: <b>${fmt(d.lift)}</b> · PMI: <b>${fmt(d.pmi)}</b>`,
+            `<span style="color:#94a3b8">A: ${d.aCount} · B: ${d.bCount} · A∩B: ${d.count} · A∪B: ${union}</span>`
+          ].join('<br/>');
+        } else {
+          body = [
+            `<b>${a}</b> ∩ <b>${b}</b>`,
+            `A (|A|): <b>${d.aCount}</b> films · ${pct(d.aCount)} du total`,
+            `B (|B|): <b>${d.bCount}</b> films · ${pct(d.bCount)} du total`,
+            `Intersection (|A∩B|): <b>${d.count}</b> films`,
+            `Union (|A∪B|): <b>${union}</b> films`,
+            `<span style=\"color:#94a3b8\">Jaccard ${fmt(d.jaccard)} · Lift ${fmt(d.lift)} · PMI ${fmt(d.pmi)}</span>`
+          ].join('<br/>');
+        }
+        const sw = `<div style=\"margin-top:6px;display:flex;gap:8px;align-items:center\">
+            <span style=\"color:#94a3b8\">Afficher:</span>
+            <a href=\"#\" data-cooc-tipmode=\"counts\" style=\"padding:2px 6px;border-radius:4px;${tooltipMode==='counts'?'background:#334155;color:#e2e8f0;':'color:#93c5fd;'}\">Nombres</a>
+            <a href=\"#\" data-cooc-tipmode=\"metrics\" style=\"padding:2px 6px;border-radius:4px;${tooltipMode==='metrics'?'background:#334155;color:#e2e8f0;':'color:#93c5fd;'}\">Métriques</a>
+          </div>`;
+        return `<div>${body}${sw}</div>`;
       }
     },
     xAxis: { type: 'category', data: labels, axisLabel: { color: '#cbd5e1', rotate: 45 } },

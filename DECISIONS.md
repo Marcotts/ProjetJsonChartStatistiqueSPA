@@ -81,3 +81,11 @@ Raison: Alignement avec votre consigne de « clé forte » entre les fichiers.
   - Étendre la modale avec un sélecteur de type (pills « Tous / Films / Séries ») visible uniquement si les deux types sont présents dans la sélection.
   - L’export CSV utilise la vue filtrée courante.
 - Justification: conventions UX modales (accessibilité et prévention des interactions fantômes) + besoin d’exploration rapide entre films et épisodes.
+
+#### 13) Bascule du contenu du tooltip co‑occurrence (2026-02-08 22:01)
+- Problème: l’info‑bulle de la Heatmap « Co‑occurrence » affiche des métriques utiles mais l’utilisateur veut basculer rapidement vers des nombres absolus (films/séries) et inversement.
+- Décision:
+  - Ajouter un mini‑sélecteur dans le tooltip: « Afficher: Nombres | Métriques ».
+  - Par défaut, afficher « Nombres » (|A|, |B|, |A∩B|, |A∪B| + % du total). « Métriques » affiche Jaccard, Lift, PMI, avec rappel des comptes.
+  - Implémentation via liens dans le tooltip (`data-cooc-tipmode`) + bridge DOM → événement `window('cooc-tooltip-mode')` → mise à jour d’un état global `state.cooc.tooltipMode` conservé pendant la session.
+- Justification: répondre au besoin d’analyse tant volumétrique (comptes) que relative (métriques) sans alourdir l’UI principale; contrôle au plus près du geste (dans l’info‑bulle).
