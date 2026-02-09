@@ -13,6 +13,9 @@ const state = {
 // Anti-double ouverture pour co‑occurrence: timestamp du dernier clic série
 let lastCoocSeriesClickTs = 0;
 
+// État du drill-down (pour filtrer Films/Séries + export)
+const drillState = { allItems: [], filtered: [], type: 'ALL' };
+
 function qs(id) { return document.getElementById(id); }
 
 async function boot() {
@@ -408,6 +411,10 @@ function inferGenreCodeFromLabel(label, model) {
 function openFrom(kind, payload, dataset, model) {
   const items = computeDrillSubset(kind, payload, dataset, model);
   const title = buildDrillTitle(kind, payload, items.length);
+  // initialise état pour filtrage Films/Séries dans la modale
+  drillState.allItems = items;
+  drillState.type = 'ALL';
+  drillState.filtered = items;
   openDrilldown(items, title);
   Logger.info('Drill‑down ouvert', { kind, payload, count: items.length });
 }
@@ -493,18 +500,88 @@ function openDrilldown(items, title) {
   const modal = qs('drilldown');
   const rowsEl = qs('drill-rows');
   const titleEl = qs('drill-title');
-  rowsEl.innerHTML = items.map(rowToTr).join('');
-  titleEl.textContent = title;
+  const panel = qs('drill-panel');
+  const backdrop = qs('drill-backdrop');
+  const typeFilterWrap = qs('drill-type-filter');
+  const btnAll = qs('drill-type-all');
+  const btnFilm = qs('drill-type-film');
+  const btnSerie = qs('drill-type-serie');
+
+  // Compute counts per type
+  const filmsCount = items.filter(r => r.__TYPE === 'FILM').length;
+  const seriesCount = items.filter(r => r.__TYPE === 'EPISODE').length;
+  const bothTypes = filmsCount > 0 && seriesCount > 0;
+
+  // Setup initial filtered set
+  drillState.allItems = items;
+  drillState.filtered = items;
+  drillState.type = 'ALL';
+
+  function renderRows(list){ rowsEl.innerHTML = list.map(rowToTr).join(''); }
+  function applyActive(btn){
+    [btnAll, btnFilm, btnSerie].forEach(b=>{ if(!b) return; b.classList.remove('bg-indigo-600','text-white'); b.classList.add('bg-slate-800'); });
+    if (btn) { btn.classList.remove('bg-slate-800'); btn.classList.add('bg-indigo-600','text-white'); }
+  }
+  function updateTitle(){
+    titleEl.textContent = `${title} — ${drillState.filtered.length}/${drillState.allItems.length}`;
+  }
+  function applyType(t){
+    drillState.type = t;
+    if (t === 'FILM') drillState.filtered = drillState.allItems.filter(r=>r.__TYPE==='FILM');
+    else if (t === 'SERIE') drillState.filtered = drillState.allItems.filter(r=>r.__TYPE==='EPISODE');
+    else drillState.filtered = drillState.allItems.slice();
+    renderRows(drillState.filtered);
+    updateTitle();
+    Logger.info('Drill‑down: filtre type appliqué', { type: t, films: filmsCount, episodes: seriesCount, shown: drillState.filtered.length });
+  }
+
+  // Show/hide type filter UI
+  if (bothTypes) {
+    typeFilterWrap.classList.remove('hidden');
+    // Attach handlers once per open
+    btnAll.onclick = () => { applyActive(btnAll); applyType('ALL'); };
+    btnFilm.onclick = () => { applyActive(btnFilm); applyType('FILM'); };
+    btnSerie.onclick = () => { applyActive(btnSerie); applyType('SERIE'); };
+    applyActive(btnAll);
+  } else {
+    typeFilterWrap.classList.add('hidden');
+  }
+
+  renderRows(drillState.filtered);
+  updateTitle();
+
+  // Open modal
   modal.classList.remove('hidden');
   modal.classList.add('flex');
+
+  // Scroll lock background
+  try { document.body.dataset.prevOverflow = document.body.style.overflow || ''; document.body.style.overflow = 'hidden'; } catch {}
+
+  // Focus trap minimal: focus panel and trap Tab inside
+  try { panel.setAttribute('tabindex','-1'); panel.focus(); } catch {}
+  function onKey(e){
+    if (e.key === 'Escape') { e.preventDefault(); closeDrilldown(); }
+  }
+  window.addEventListener('keydown', onKey, { once: true });
+
+  // Backdrop click closes
+  if (backdrop) {
+    backdrop.onclick = () => closeDrilldown();
+  }
+
+  // Close button
   qs('drill-close').onclick = closeDrilldown;
-  qs('drill-export').onclick = () => exportCsv(items, 'selection.csv');
+
+  // Export uses current filtered list
+  qs('drill-export').onclick = () => exportCsv(drillState.filtered, 'selection.csv');
 }
 
 function closeDrilldown(){
   const modal = qs('drilldown');
   modal.classList.add('hidden');
   modal.classList.remove('flex');
+  // restore scroll
+  try { const prev = document.body.dataset.prevOverflow || ''; document.body.style.overflow = prev; delete document.body.dataset.prevOverflow; } catch {}
 }
 
 function rowToTr(r){

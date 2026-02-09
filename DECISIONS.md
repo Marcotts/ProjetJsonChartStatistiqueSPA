@@ -73,3 +73,11 @@ Raison: Alignement avec votre consigne de « clé forte » entre les fichiers.
 #### 11) Simplification des contrôles co‑occurrence (2026-02-08 16:52)
 - Pour alléger l’UI et éviter les confusions, tous les contrôles de la carte « Co‑occurrence de Catégories (Top N) » ont été retirés sauf « Exclure DRAME ».
 - Valeurs par défaut conservées côté moteur: Vue=Heatmap, Couleur=Jaccard, Masquer diagonale=désactivé. Un fallback automatique bascule en Points si la Heatmap n’a aucune cellule visible; ce comportement reste actif sans bouton dédié.
+
+#### 12) UX de la modale de drill‑down (2026-02-08 21:45)
+- Problème: ouverture de la modale figeant l’écran, avec interactions passant encore en arrière‑plan (pas de focus/scroll lock) et absence de sélection « Films/Séries » dans la liste.
+- Décisions:
+  - Capturer le focus dans la modale; verrouiller le scroll de l’arrière‑plan; permettre fermeture via clic sur le backdrop et touche Échap.
+  - Étendre la modale avec un sélecteur de type (pills « Tous / Films / Séries ») visible uniquement si les deux types sont présents dans la sélection.
+  - L’export CSV utilise la vue filtrée courante.
+- Justification: conventions UX modales (accessibilité et prévention des interactions fantômes) + besoin d’exploration rapide entre films et épisodes.

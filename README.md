@@ -3,7 +3,9 @@
 Ce projet est une application web statique (SPA) servant des tableaux de bord interactifs sur vos données H2 exportées en JSON : `RESUMES.json`, `SERIE1.json`, `SERIE2.json`, `TOUSLESFILMS.json`, `CATEGORIES.json`.
 
 #### Où en étions‑nous ?
-- État au 2026-02-08 21:32: Tooltips de co‑occurrence enrichis + bordures affinées.
+- État au 2026-02-08 21:45: Modale de drill‑down corrigée + filtre Films/Séries.
+  - La fenêtre de détails (drill‑down) capture désormais correctement l’interaction: focus donné à la modale, verrouillage du scroll en arrière‑plan, clic sur l’arrière‑plan (backdrop) et touche Échap ferment la modale. Plus d’effet « écran figé » avec navigation qui continue derrière.
+  - Ajout d’un sélecteur de type dans la modale (pills « Tous / Films / Séries ») lorsqu’il y a un mélange des deux. Le tableau et l’export CSV respectent le filtre actif. Des logs INFO tracent l’ouverture et les changements de filtre.
   - Carte « Co‑occurrence de Catégories (Top N) »: seul le bouton « Exclure DRAME » est visible. Vue par défaut Heatmap/Jaccard; fallback auto vers Points si nécessaire.
   - Colorimétrie: échelle maintenant « adaptive » — si la matrice est très dense ou la plage très étroite, on passe en `piecewise` (quantiles) pour créer des paliers de couleurs perceptibles; sinon, on garde une échelle continue. La diagonale est incluse visuellement mais exclue du calcul des seuils pour éviter d’écraser le contraste.
   - Tooltips (Heatmap & Points) affichent désormais clairement: |A|, |B|, |A∩B|, |A∪B| + % du total films pour |A| et |B|, puis Jaccard / Lift / PMI.
