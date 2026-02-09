@@ -170,8 +170,35 @@ export function renderGenreCoocHeatmap(el, payload, options = {}) {
     ijToIndex.set(`${d[1]},${d[0]}`, k);
   }
   const values = data.map(d => d[2]);
-  let max = values.length ? Math.max(...values) : 0;
+  // Compute stats excluding diagonal for color scaling (even if diagonal is shown)
+  const offDiagValues = raw
+    .filter(cell => cell.i !== cell.j)
+    .map(cell => (metric === 'count' ? cell.count : (cell[metric] ?? 0)))
+    .filter(v => Number.isFinite(v));
+  function quantile(arr, q){
+    if (!arr.length) return 0;
+    const a = [...arr].sort((x,y)=>x-y);
+    const pos = (a.length - 1) * q;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    if (a[base+1] !== undefined) return a[base] + rest * (a[base+1] - a[base]);
+    return a[base];
+  }
   let min = values.length ? Math.min(...values) : 0;
+  let max = values.length ? Math.max(...values) : 0;
+  let stats = null;
+  if (offDiagValues.length) {
+    const odMin = Math.min(...offDiagValues);
+    const odMax = Math.max(...offDiagValues);
+    const p10 = quantile(offDiagValues, 0.10);
+    const p25 = quantile(offDiagValues, 0.25);
+    const p50 = quantile(offDiagValues, 0.50);
+    const p75 = quantile(offDiagValues, 0.75);
+    const p90 = quantile(offDiagValues, 0.90);
+    stats = { odMin, odMax, p10, p25, p50, p75, p90 };
+    // Prefer off-diagonal range for scaling to avoid self-count domination
+    min = odMin; max = odMax;
+  }
 
   if (!labels.length || !data.length) {
     // Log explicit data presence even if nothing is renderable
@@ -205,6 +232,53 @@ export function renderGenreCoocHeatmap(el, payload, options = {}) {
     max = min + (metric === 'count' ? 1 : 1e-6);
   }
 
+  // Decide visual scaling mode: continuous vs quantile-based piecewise
+  let visualMap;
+  const dense = (offDiagValues.length > 0) ? (offDiagValues.filter(v=>v>0).length / offDiagValues.length) >= 0.9 : false;
+  const narrow = (min > 0 && max/min < 1.5) || (max - min) < (metric === 'count' ? 5 : 0.02);
+  if (dense || narrow) {
+    // Build 7-quantile thresholds for better contrast
+    const qs = [0, 0.15, 0.30, 0.5, 0.7, 0.85, 1].map(q => quantile(offDiagValues, q));
+    // Deduplicate and ensure ascending
+    const ths = Array.from(new Set(qs)).sort((a,b)=>a-b);
+    const palette = ['#440154', '#3b528b', '#21908d', '#5dc963', '#a6e65a', '#d5f26c', '#fde725'];
+    const pieces = [];
+    for (let i = 0; i < ths.length; i++) {
+      const minv = ths[i];
+      const maxv = (i < ths.length - 1) ? ths[i+1] : undefined;
+      pieces.push({ min: minv, max: maxv, label: (minv===maxv? `${fmt(minv)}` : `${fmt(minv)}–${maxv!==undefined?fmt(maxv):'+'}`) });
+    }
+    visualMap = {
+      type: 'piecewise',
+      dimension: 2,
+      pieces,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: 0,
+      textStyle: { color: '#cbd5e1' },
+      inRange: { color: palette },
+      outOfRange: { color: ['#1f2937'], colorAlpha: 0.15 }
+    };
+    Logger.info('Co‑occurrence — visualMap piecewise (quantiles) sélectionné', { metric, dense, narrow, thresholds: ths });
+  } else {
+    visualMap = {
+      dimension: 2,
+      min: Math.max(0, min),
+      max: Math.max(min + (metric === 'count' ? 1 : 1e-6), max),
+      calculable: true,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: 0,
+      text: [metric.toUpperCase(), ''],
+      textStyle: { color: '#cbd5e1' },
+      inRange: {
+        color: ['#440154', '#3b528b', '#21908d', '#5dc963', '#fde725'] // Viridis-like
+      },
+      outOfRange: { color: ['#1f2937'], colorAlpha: 0.15 }
+    };
+    Logger.info('Co‑occurrence — visualMap continu sélectionné', { metric, min, max });
+  }
+
   // Important: clear any previous overlay graphics that could block pointer events
   chart.clear();
 
@@ -235,33 +309,34 @@ export function renderGenreCoocHeatmap(el, payload, options = {}) {
         }
       }
     },
-    xAxis: { type: 'category', data: labels, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', rotate: 45 } },
-    yAxis: { type: 'category', data: labels, splitArea: { show: true }, axisLabel: { color: '#cbd5e1' } },
-    grid: { left: 120, right: 20, top: 10, bottom: 100 },
-    visualMap: {
-      min: Math.max(0, min),
-      max: Math.max(min + (metric === 'count' ? 1 : 1e-6), max),
-      calculable: true,
-      orient: 'horizontal',
-      left: 'center',
-      bottom: 0,
-      text: [metric.toUpperCase(), ''],
-      textStyle: { color: '#cbd5e1' },
-      inRange: {
-        color: ['#440154', '#3b528b', '#21908d', '#5dc963', '#fde725'] // Viridis-like
-      }
+    xAxis: { 
+      type: 'category', 
+      data: labels, 
+      axisLabel: { color: '#cbd5e1', rotate: 45 },
+      axisTick: { show: false },
+      splitLine: { show: true, lineStyle: { color: 'rgba(148,163,184,0.15)' } }
     },
+    yAxis: { 
+      type: 'category', 
+      data: labels, 
+      axisLabel: { color: '#cbd5e1' },
+      axisTick: { show: false },
+      splitLine: { show: true, lineStyle: { color: 'rgba(148,163,184,0.15)' } }
+    },
+    grid: { left: 120, right: 20, top: 10, bottom: 100 },
+    visualMap,
     series: [{
       name: 'Co‑occurrence',
       type: 'heatmap',
       data,
       encode: { x: 0, y: 1, value: 2 },
       label: { show: false },
-      emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)' } },
+      itemStyle: { opacity: 0.92, borderColor: 'rgba(15,23,42,0.65)', borderWidth: 0.6 },
+      emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(15,23,42,0.9)', borderWidth: 1 } },
       progressive: 0
     }]
   });
-  Logger.info('Chart genre-cooc rendu', { n: labels.length, metric, hideDiagonal, exclude: excluded });
+  Logger.info('Chart genre-cooc rendu', { n: labels.length, metric, hideDiagonal, exclude: excluded, scaling: (visualMap.type==='piecewise'?'piecewise':'continuous'), stats });
   // One-time diagnostics to confirm pointer events reach the canvas and series
   try {
     let zrLogged = false, overLogged = false;

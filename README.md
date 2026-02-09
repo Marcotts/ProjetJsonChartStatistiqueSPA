@@ -3,10 +3,11 @@
 Ce projet est une application web statique (SPA) servant des tableaux de bord interactifs sur vos données H2 exportées en JSON : `RESUMES.json`, `SERIE1.json`, `SERIE2.json`, `TOUSLESFILMS.json`, `CATEGORIES.json`.
 
 #### Où en étions‑nous ?
-- État au 2026-02-08 20:23: correctif clic/drill‑down co‑occurrence.
-  - Carte « Co‑occurrence de Catégories (Top N) »: seul le bouton « Exclure DRAME » est visible. Vue par défaut Heatmap/Jaccard; fallback auto vers Points si nécessaire. Nouveau: un « driver de clic manuel » convertit le clic pixel → cellule (i,j) et ouvre toujours le drill‑down même si l’événement série ECharts ne se déclenche pas.
-  - Tooltips durcies (trigger item, triggerOn mousemove|click) + « manual hover driver » déjà actif.
-  - Bouton « Ping Journal »: affiche les stats générales et le détail de l’intersection « Horreur ∩ Science‑fiction » (HOR ∩ SCFI) selon filtres.
+- État au 2026-02-08 20:59: contraste Heatmap co‑occurrence renforcé (échelle adaptive par quantiles), clic/hover garantis.
+  - Carte « Co‑occurrence de Catégories (Top N) »: seul le bouton « Exclure DRAME » est visible. Vue par défaut Heatmap/Jaccard; fallback auto vers Points si nécessaire.
+  - Colorimétrie: échelle maintenant « adaptive » — si la matrice est très dense ou la plage très étroite, on passe en `piecewise` (quantiles) pour créer des paliers de couleurs perceptibles; sinon, on garde une échelle continue. La diagonale est incluse visuellement mais exclue du calcul des seuils pour éviter d’écraser le contraste.
+  - Tooltips durcies (trigger item) + « manual hover driver »; clic « manual driver » en secours → drill‑down toujours ouvert au clic.
+  - Bouton « Ping Journal »: stats générales + intersection « Horreur ∩ Science‑fiction » (HOR ∩ SCFI) selon filtres.
   - Journal d’accompagnement au démarrage toujours présent.
 - La carte « Nombre de catégories par titre » (id `chart-genre-counts`) reste en classes 0..9 et `9+`.
 - Après mise à jour, faites un rafraîchissement dur (Ctrl+F5). Si le serveur local est arrêté, relancez‑le (voir plus bas).
@@ -80,3 +81,14 @@ npx http-server -p 8080 -a 127.0.0.1 --cors
 - Souhaitez‑vous appliquer des règles de dédoublonnage si la clé forte n’est pas entièrement renseignée (ex : `DISQUEANGLAIS` null) ?
 - Faut‑il inclure les headers de série dans les stats « par année » ou seulement les épisodes ?
 - Quelles priorités de KPIs souhaitez‑vous (top langue, top disques, couverture des résumés, etc.) ?
+
+
+
+#### Mise à jour 2026-02-08 20:47 — Heatmap « jeu de dame » corrigée
+- La carte « Co‑occurrence de Catégories (Top N) » affichait des bandes alternées par rangées/colonnes (effet « jeu de dame ») sans variation d’intensité.
+- Correctif appliqué dans `src/charts.js`:
+  - Suppression des `splitArea` sur les axes X/Y (qui dessinaient les bandes de fond).
+  - Ajout de `splitLine` discrets pour le repère visuel.
+  - Renforcement du `itemStyle` de la série heatmap (opacité, fin liseré) pour laisser s’exprimer l’échelle de couleurs (Viridis‑like).
+- Résultat: la couleur varie maintenant par intensité (Jaccard par défaut), sans motif rayé parasite. Tooltips et drill‑down restent actifs.
+- Pour voir la modification: rafraîchissement dur (Ctrl+F5). Si le serveur local a été arrêté, relancez‑le (voir plus haut).
